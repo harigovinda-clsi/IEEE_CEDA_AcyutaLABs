@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🚦 GATIMARG KAVACH · Multi‑City MARL Grid</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link 
+        rel="stylesheet" 
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" 
+    />
+    <style>
+        /* ─── Theme Variables ─── */
+        :root {
+            --bg-body: #0b1120;
+            --bg-card: rgba(30, 41, 59, 0.65);
+            --border-card: rgba(56, 189, 248, 0.15);
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-accent: #38bdf8;
+            --node-idle: #1e293b;
+            --node-idle-text: #64748b;
+            --node-active: #0ea5e9;
+            --node-congested: #ef4444;
+            --glow-color: rgba(56, 189, 248, 0.25);
+            --badge-bg: rgba(16, 185, 129, 0.2);
+            --badge-border: rgba(16, 185, 129, 0.3);
+            --input-bg: #1e293b;
+            --input-border: #475569;
+            --shadow: 0 0 30px rgba(56, 189, 248, 0.1);
+        }
+
+        /* Theme 2: Light */
+        [data-theme="light"] {
+            --bg-body: #f1f5f9;
+            --bg-card: rgba(255, 255, 255, 0.8);
+            --border-card: rgba(100, 116, 139, 0.2);
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-accent: #0ea5e9;
+            --node-idle: #e2e8f0;
+            --node-idle-text: #64748b;
+            --node-active: #3b82f6;
+            --node-congested: #dc2626;
+            --glow-color: rgba(59, 130, 246, 0.15);
+            --badge-bg: rgba(59, 130, 246, 0.1);
+            --badge-border: rgba(59, 130, 246, 0.2);
+            --input-bg: #f8fafc;
+            --input-border: #cbd5e1;
+            --shadow: 0 0 30px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Theme 3: Nature */
+        [data-theme="nature"] {
+            --bg-body: #0f1a12;
+            --bg-card: rgba(20, 40, 30, 0.75);
+            --border-card: rgba(74, 222, 128, 0.15);
+            --text-primary: #d1fae5;
+            --text-secondary: #86efac;
+            --text-accent: #4ade80;
+            --node-idle: #1a2e22;
+            --node-idle-text: #6b8b7a;
+            --node-active: #22c55e;
+            --node-congested: #f87171;
+            --glow-color: rgba(74, 222, 128, 0.2);
+            --badge-bg: rgba(74, 222, 128, 0.15);
+            --badge-border: rgba(74, 222, 128, 0.25);
+            --input-bg: #1a2e22;
+            --input-border: #2d4a3a;
+            --shadow: 0 0 30px rgba(74, 222, 128, 0.05);
+        }
+
+        /* ─── Base Styles ─── */
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg-body);
+            color: var(--text-primary);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            padding: 1rem;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .glass {
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--border-card);
+            border-radius: 1rem;
+            box-shadow: var(--shadow);
+            transition: background 0.3s, border 0.3s, box-shadow 0.3s;
+        }
+
+        .glow-text {
+            text-shadow: 0 0 30px var(--glow-color);
+        }
+
+        .node-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+            gap: 3px;
+        }
+
+        .node-item {
+            padding: 3px 1px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 8px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            cursor: default;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            line-height: 1.3;
+            border: 1px solid transparent;
+        }
+
+        .node-idle {
+            background: var(--node-idle);
+            color: var(--node-idle-text);
+            border-color: var(--node-idle);
+        }
+
+        .node-active {
+            background: var(--node-active);
+            color: #ffffff;
+            border-color: var(--node-active);
+            box-shadow: 0 0 12px var(--node-active);
+        }
+
+        .node-congested {
+            background: var(--node-congested);
+            color: #ffffff;
+            border-color: var(--node-congested);
+            box-shadow: 0 0 16px var(--node-congested);
+            animation: pulse-red 1.8s infinite;
+        }
+
+        .node-focused {
+            border-color: #facc15 !important;
+            box-shadow: 0 0 20px rgba(250, 204, 21, 0.5) !important;
+            transform: scale(1.08);
+            z-index: 2;
+            position: relative;
+        }
+
+        @keyframes pulse-red {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.65;
+            }
+        }
+
+        .scroll-log {
+            max-height: 160px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--text-accent) var(--node-idle);
+        }
+
+        .scroll-log::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .scroll-log::-webkit-scrollbar-track {
+            background: var(--node-idle);
+            border-radius: 10px;
+        }
+
+        .scroll-log::-webkit-scrollbar-thumb {
+            background: var(--text-accent);
+            border-radius: 10px;
+        }
+
+        .badge {
+            font-size: 0.6rem;
+            padding: 0.15rem 0.6rem;
+            border-radius: 999px;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            background: var(--badge-bg);
+            border: 1px solid var(--badge-border);
+            color: var(--text-secondary);
+        }
+
+        input[type="range"] {
+            accent-color: var(--text-accent);
+            height: 4px;
+            background: var(--input-border);
+            border-radius: 10px;
+            appearance: none;
+            outline: none;
+            width: 100%;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--text-accent);
+            cursor: pointer;
+            border: 2px solid var(--bg-body);
+            box-shadow: 0 0 12px var(--glow-color);
+        }
+
+        select {
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            color: var(--text-primary);
+            border-radius: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.8rem;
+            outline: none;
+            transition: border 0.2s;
+        }
+
+        select:focus {
+            border-color: var(--text-accent);
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .city-tab {
+            padding: 0.3rem 0.8rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            background: var(--node-idle);
+            color: var(--text-secondary);
+        }
+
+        .city-tab.active {
+            background: var(--text-accent);
+            color: #ffffff;
+            border-color: var(--text-accent);
+        }
+
+        .city-tab:hover:not(.active) {
+            border-color: var(--text-accent);
+            color: var(--text-primary);
+        }
+
+        .grid-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        @media (max-width: 640px) {
+            .grid-2col {
+                grid-template-columns: 1fr;
+            }
+            .node-grid {
+                grid-template-columns: repeat(auto-fill, minmax(28px, 1fr));
+            }
+            .node-item {
+                font-size: 7px;
+                padding: 2px 1px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="max-w-7xl mx-auto">
+
+        <!-- ═══════════ HEADER ═══════════ -->
+        <header class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-700/40 pb-4 mb-6">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold glow-text flex items-center gap-2" style="color: var(--text-accent);">
+                    <i class="fas fa-traffic-light"></i> GATIMARG KAVACH
+                </h1>
+                <p class="text-xs sm:text-sm" style="color: var(--text-secondary);">
+                    <span class="font-medium" style="color: var(--text-primary);">Securing Smart Mobility through Decentralized AI & Blockchain Ecosystems</span>
+                    <span class="hidden sm:inline"> &nbsp;|&nbsp; </span><br class="sm:hidden"/>
+                    <i class="fas fa-microchip" style="color: var(--text-accent);"></i> MARL + Game Theory &nbsp;|&nbsp;
+                    <i class="fas fa-eye" style="color: #4ade80;"></i> YOLO / CNN-LSTM Fusion &nbsp;|&nbsp;
+                    <i class="fas fa-link" style="color: #fbbf24;"></i> Blockchain Audit
+                </p>
+            </div>
+            <div class="flex items-center gap-3 flex-wrap">
+                <span class="badge">
+                    <i class="fas fa-circle" style="color: #4ade80; font-size: 6px;"></i> Live Edge
+                </span>
+                <span class="badge">
+                    <i class="fas fa-link" style="color: var(--text-accent);"></i> P2P Consensus
+                </span>
+                
+                <!-- Theme Toggle -->
+                <div class="flex gap-1 bg-slate-800/40 p-1 rounded-full border border-slate-700/40">
+                    <button 
+                        data-theme="dark" 
+                        class="theme-btn w-6 h-6 rounded-full bg-slate-800 border-2 border-cyan-400" 
+                        title="Dark Theme">
+                    </button>
+                    <button 
+                        data-theme="light" 
+                        class="theme-btn w-6 h-6 rounded-full bg-slate-200 border-2 border-transparent" 
+                        title="Light Theme">
+                    </button>
+                    <button 
+                        data-theme="nature" 
+                        class="theme-btn w-6 h-6 rounded-full bg-emerald-800 border-2 border-transparent" 
+                        title="Nature Theme">
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- ═══════════ CITY SELECTOR ═══════════ -->
+        <div class="flex flex-wrap items-center gap-2 mb-4" id="city-tabs">
+            <!-- Injected by JavaScript -->
+        </div>
+
+        <!-- ═══════════ STATS CARDS ═══════════ -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6" id="stats-container">
+            <!-- Filled dynamically by JS -->
+        </div>
+
+        <!-- ═══════════ MAIN GRID ═══════════ -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+
+            <!-- LEFT: Node Grid + Detection Feed -->
+            <div class="lg:col-span-2 glass p-4">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <h3 class="font-semibold text-sm flex items-center gap-2" style="color: var(--text-accent);">
+                        <i class="fas fa-video"></i> Live Detection Feed
+                    </h3>
+                    <span class="text-xs" style="color: var(--text-secondary);">
+                        FPS: <span id="fps-counter">12</span>
+                    </span>
+                </div>
+
+                <!-- Node Grid for selected city -->
+                <div class="mb-4">
+                    <p class="text-xs" style="color: var(--text-secondary); margin-bottom: 4px;">
+                        <span id="city-name-display">City</span> · <span id="node-count-display">0</span> nodes
+                    </p>
+                    <div id="node-grid-container" class="node-grid"></div>
+                </div>
+
+                <!-- Detection Log Container -->
+                <div class="rounded-lg border p-2" style="background: var(--node-idle); border-color: var(--input-border);">
+                    <div 
+                        class="flex justify-between items-center text-[10px]" 
+                        style="color: var(--text-secondary); border-bottom: 1px solid var(--input-border); padding-bottom: 4px; margin-bottom: 4px;">
+                        <span class="w-1/5">Plate</span>
+                        <span class="w-1/8 text-center">Node</span>
+                        <span class="w-1/6 text-center">Dir.</span>
+                        <span class="w-1/8 text-center">Conf.</span>
+                        <span class="w-1/5 text-center">Timestamp</span>
+                        <span class="w-1/12 text-center">✓</span>
+                    </div>
+                    <div id="detection-log" class="scroll-log space-y-0.5 max-h-36"></div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Blockchain Audit Log -->
+            <div class="glass p-4 flex flex-col">
+                <h3 class="font-semibold text-sm flex items-center gap-2 mb-2" style="color: #fbbf24;">
+                    <i class="fas fa-link"></i> Blockchain Audit Log
+                </h3>
+                <div id="blockchain-log" class="scroll-log flex-1 space-y-0.5 text-[11px]"></div>
+                <div 
+                    class="mt-3 flex justify-between text-[10px]" 
+                    style="color: var(--text-secondary); border-top: 1px solid var(--input-border); padding-top: 8px;">
+                    <span>Contract: <span style="color: var(--text-accent); font-family: monospace;" class="contract-address">0x7Fa...9C3</span></span>
+                    <span>Block: <span id="block-number">12,405</span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════ MARL CONTROLS ═══════════ -->
+        <div class="glass p-4 border-t-2" style="border-color: var(--text-accent);">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-4 flex-wrap">
+                    <div>
+                        <p class="text-xs uppercase flex items-center gap-1" style="color: var(--text-secondary);">
+                            <i class="fas fa-scale-balanced" style="color: var(--text-accent);"></i> Social Weight
+                        </p>
+                        <div class="flex items-center gap-2 w-40 sm:w-56">
+                            <input 
+                                type="range" 
+                                id="social-weight-slider" 
+                                min="0" 
+                                max="1" 
+                                step="0.01" 
+                                value="0.40" 
+                            />
+                            <span id="social-weight-value" class="font-mono text-sm w-10" style="color: var(--text-accent);">0.40</span>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase" style="color: var(--text-secondary);">Focused Node</p>
+                        <select id="focused-node" class="text-sm"></select>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-4 sm:gap-6">
+                    <div class="text-center">
+                        <p class="text-[10px] uppercase" style="color: var(--text-secondary);">Local Queue</p>
+                        <p class="text-xl font-bold" id="focused-queue">—</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-[10px] uppercase" style="color: var(--text-secondary);">MARL Action</p>
+                        <p class="text-xl font-bold" id="focused-action" style="color: #4ade80;">Hold</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-[10px] uppercase" style="color: var(--text-secondary);">Neighbor Impact</p>
+                        <p class="text-xl font-bold" id="focused-penalty" style="color: #fbbf24;">0%</p>
+                    </div>
+                </div>
+            </div>
+
+            <div 
+                class="mt-3 text-[10px] p-2 rounded border flex items-start gap-2" 
+                style="color: var(--text-secondary); background: var(--node-idle); border-color: var(--input-border);">
+                <i class="fas fa-info-circle mt-0.5" style="color: var(--text-accent);"></i>
+                <span id="marl-explanation">Cooperative MARL sacrifices local gain to prevent gridlock. Higher Social Weight = more altruistic.</span>
+            </div>
+        </div>
+
+        <footer 
+            class="mt-8 text-center text-[10px] border-t pt-4" 
+            style="color: var(--text-secondary); border-color: var(--input-border);">
+            🚦 GATIMARG KAVACH · Securing Smart Mobility through Decentralized AI & Blockchain Ecosystems · MARL + Game Theory · YOLO / CNN-LSTM Fusion · Blockchain Audit
+        </footer>
+    </div>
+
+    <script>
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  1.  COMPREHENSIVE INDIAN STATES & CITIES DATABASE
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        const INDIA_CITIES_DB = [
+            {
+                id: 'mumbai',
+                state: 'Maharashtra',
+                name: 'Mumbai',
+                nodes: 72,
+                contract: '0x8Ie1...G3E1'
+            },
+            {
+                id: 'delhi',
+                state: 'Delhi',
+                name: 'Delhi',
+                nodes: 85,
+                contract: '0x1Rn4...P6N4'
+            },
+            {
+                id: 'bangalore',
+                state: 'Karnataka',
+                name: 'Bangalore',
+                nodes: 68,
+                contract: '0x2Ws5...U7S5'
+            },
+            {
+                id: 'chennai',
+                state: 'Tamil Nadu',
+                name: 'Chennai',
+                nodes: 58,
+                contract: '0x7Bx0...Z2X0'
+            },
+            {
+                id: 'hyderabad',
+                state: 'Telangana',
+                name: 'Hyderabad',
+                nodes: 56,
+                contract: '0x3Hd6...F8D6'
+            },
+            {
+                id: 'pune',
+                state: 'Maharashtra',
+                name: 'Pune',
+                nodes: 55,
+                contract: '0x9Jf2...H4F2'
+            },
+            {
+                id: 'kolkata',
+                state: 'West Bengal',
+                name: 'Kolkata',
+                nodes: 62,
+                contract: '0x6Kg9...I1G9'
+            },
+            {
+                id: 'ahmedabad',
+                state: 'Gujarat',
+                name: 'Ahmedabad',
+                nodes: 52,
+                contract: '0x5Pl8...N0L8'
+            },
+            {
+                id: 'surat',
+                state: 'Gujarat',
+                name: 'Surat',
+                nodes: 42,
+                contract: '0x6Qm9...O1M9'
+            },
+            {
+                id: 'jaipur',
+                state: 'Rajasthan',
+                name: 'Jaipur',
+                nodes: 48,
+                contract: '0x6Ws9...U1S9'
+            },
+            {
+                id: 'lucknow',
+                state: 'Uttar Pradesh',
+                name: 'Lucknow',
+                nodes: 42,
+                contract: '0x1Bx4...Z6X4'
+            },
+            {
+                id: 'kanpur',
+                state: 'Uttar Pradesh',
+                name: 'Kanpur',
+                nodes: 38,
+                contract: '0x2Cy5...A7Y5'
+            },
+            {
+                id: 'nagpur',
+                state: 'Maharashtra',
+                name: 'Nagpur',
+                nodes: 32,
+                contract: '0x0Kg3...I5G3'
+            },
+            {
+                id: 'indore',
+                state: 'Madhya Pradesh',
+                name: 'Indore',
+                nodes: 38,
+                contract: '0x2Kg5...I7G5'
+            },
+            {
+                id: 'bhopal',
+                state: 'Madhya Pradesh',
+                name: 'Bhopal',
+                nodes: 34,
+                contract: '0x1Jf4...H6F4'
+            },
+            {
+                id: 'patna',
+                state: 'Bihar',
+                name: 'Patna',
+                nodes: 36,
+                contract: '0x8Ws1...U3S1'
+            },
+            {
+                id: 'ranchi',
+                state: 'Jharkhand',
+                name: 'Ranchi',
+                nodes: 28,
+                contract: '0x1Zv4...X6V4'
+            },
+            {
+                id: 'bhubaneswar',
+                state: 'Odisha',
+                name: 'Bhubaneswar',
+                nodes: 32,
+                contract: '0x5Tp8...R0P8'
+            },
+            {
+                id: 'guwahati',
+                state: 'Assam',
+                name: 'Guwahati',
+                nodes: 30,
+                contract: '0x4Cy7...A9Y7'
+            },
+            {
+                id: 'chandigarh',
+                state: 'Chandigarh',
+                name: 'Chandigarh',
+                nodes: 25,
+                contract: '0x3Jf6...H8F6'
+            },
+            {
+                id: 'srinagar',
+                state: 'Jammu & Kashmir',
+                name: 'Srinagar',
+                nodes: 22,
+                contract: '0x8Fb2...D4B2'
+            },
+            {
+                id: 'amritsar',
+                state: 'Punjab',
+                name: 'Amritsar',
+                nodes: 32,
+                contract: '0x4Kg7...I9G7'
+            },
+            {
+                id: 'jodhpur',
+                state: 'Rajasthan',
+                name: 'Jodhpur',
+                nodes: 32,
+                contract: '0x7Xt0...V2T0'
+            },
+            {
+                id: 'kochi',
+                state: 'Kerala',
+                name: 'Kochi',
+                nodes: 34,
+                contract: '0x2Qm5...O7M5'
+            },
+            {
+                id: 'coimbatore',
+                state: 'Tamil Nadu',
+                name: 'Coimbatore',
+                nodes: 34,
+                contract: '0x8Cy1...A3Y1'
+            },
+            {
+                id: 'mysore',
+                state: 'Karnataka',
+                name: 'Mysore',
+                nodes: 28,
+                contract: '0x3Xt6...V8T6'
+            },
+            {
+                id: 'vadodara',
+                state: 'Gujarat',
+                name: 'Vadodara',
+                nodes: 30,
+                contract: '0x7Rn0...P2N0'
+            },
+            {
+                id: 'agra',
+                state: 'Uttar Pradesh',
+                name: 'Agra',
+                nodes: 28,
+                contract: '0x4Ea7...C9A7'
+            },
+            {
+                id: 'varanasi',
+                state: 'Uttar Pradesh',
+                name: 'Varanasi',
+                nodes: 30,
+                contract: '0x3Dz6...B8Z6'
+            },
+            {
+                id: 'shimla',
+                state: 'Himachal Pradesh',
+                name: 'Shimla',
+                nodes: 18,
+                contract: '0x1Hd4...F6D4'
+            },
+            {
+                id: 'dehradun',
+                state: 'Uttarakhand',
+                name: 'Dehradun',
+                nodes: 24,
+                contract: '0x8Ok1...M3K1'
+            },
+            {
+                id: 'raipur',
+                state: 'Chhattisgarh',
+                name: 'Raipur',
+                nodes: 28,
+                contract: '0x6Ok9...M1K9'
+            },
+            {
+                id: 'pondicherry',
+                state: 'Puducherry',
+                name: 'Puducherry',
+                nodes: 20,
+                contract: '0x9Rn2...P4N2'
+            },
+            {
+                id: 'panaji',
+                state: 'Goa',
+                name: 'Panaji',
+                nodes: 18,
+                contract: '0x2Uq5...S7Q5'
+            },
+            {
+                id: 'gangtok',
+                state: 'Sikkim',
+                name: 'Gangtok',
+                nodes: 12,
+                contract: '0x0Ie3...G5E3'
+            },
+            {
+                id: 'aizawl',
+                state: 'Mizoram',
+                name: 'Aizawl',
+                nodes: 14,
+                contract: '0x8Gc1...E3C1'
+            },
+            {
+                id: 'imphal',
+                state: 'Manipur',
+                name: 'Imphal',
+                nodes: 18,
+                contract: '0x7Fb0...D2B0'
+            },
+            {
+                id: 'shillong',
+                state: 'Meghalaya',
+                name: 'Shillong',
+                nodes: 16,
+                contract: '0x9Hd2...F4D2'
+            },
+            {
+                id: 'portblair',
+                state: 'Andaman & Nicobar',
+                name: 'Port Blair',
+                nodes: 14,
+                contract: '0x0So3...Q5O3'
+            }
+        ];
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  2.  STATE VARIABLES
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        let selectedCityId = 'mumbai';
+        const nodeStates = {};
+        const nodeQueues = {};
+        let blockchainLogs = [];
+        let blockCounter = 12405;
+        let detectionHistory = [];
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  3.  CITY INITIALIZATION
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function initCityNodes(cityId) {
+            const city = INDIA_CITIES_DB.find(c => c.id === cityId);
+            if (!city) return;
+
+            for (const key of Object.keys(nodeStates)) {
+                if (key.startsWith(cityId + '-')) {
+                    delete nodeStates[key];
+                    delete nodeQueues[key];
+                }
+            }
+
+            for (let i = 1; i <= city.nodes; i++) {
+                const id = `${cityId}-${i}`;
+                nodeStates[id] = Math.floor(Math.random() * 2);
+                nodeQueues[id] = Math.floor(Math.random() * 140) + 20;
+            }
+
+            const total = city.nodes;
+            const congestCount = Math.max(2, Math.floor(total * 0.12));
+            for (let j = 0; j < congestCount; j++) {
+                const idx = Math.floor(Math.random() * total) + 1;
+                const id = `${cityId}-${idx}`;
+                if (nodeStates[id] !== undefined) {
+                    nodeStates[id] = 2;
+                    nodeQueues[id] = Math.floor(Math.random() * 120) + 200;
+                }
+            }
+
+            const first = `${cityId}-1`;
+            if (nodeStates[first] === 0) {
+                nodeStates[first] = 1;
+                nodeQueues[first] = 90;
+            }
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  4.  UTILITY FUNCTIONS
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function getCitiesByState(stateName) {
+            return INDIA_CITIES_DB.filter(c => c.state === stateName);
+        }
+
+        function getAllStates() {
+            const states = [...new Set(INDIA_CITIES_DB.map(c => c.state))];
+            return states.sort();
+        }
+
+        function getCityById(id) {
+            return INDIA_CITIES_DB.find(c => c.id === id);
+        }
+
+        function getFormattedTimestamp() {
+            const now = new Date();
+            let hours = now.getHours();
+            const ampm = hours >= 12 ? 'pm' : 'am';
+            hours = hours % 12 || 12;
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            return `${hours}:${minutes} ${ampm} - ${day}-${month}-${year}`;
+        }
+
+        function generatePlate() {
+            const states = [
+                'KA', 'MH', 'DL', 'TN', 'UP', 'RJ', 'GJ', 'HR', 
+                'PB', 'WB', 'KL', 'AP', 'TS', 'BR', 'OR', 'MP', 
+                'CG', 'JH', 'UK', 'HP', 'PY', 'GA'
+            ];
+            const r1 = Math.floor(Math.random() * 10);
+            const r2 = Math.floor(Math.random() * 10);
+            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const l1 = letters[Math.floor(Math.random() * 26)];
+            const l2 = letters[Math.floor(Math.random() * 26)];
+            const l3 = letters[Math.floor(Math.random() * 26)];
+            const num = String(Math.floor(Math.random() * 9000) + 1000);
+            return `${states[Math.floor(Math.random() * states.length)]}-${r1}${r2}-${l1}${l2}${l3}-${num}`;
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  5.  SIMULATED VEHICLE DETECTION
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function generateVehicle(cityId) {
+            const city = INDIA_CITIES_DB.find(c => c.id === cityId);
+            if (!city) return null;
+
+            const total = city.nodes;
+            const idx = Math.floor(Math.random() * total) + 1;
+            const nodeId = `${cityId}-${idx}`;
+            const plate = generatePlate();
+            const confidence = (Math.random() * 0.12 + 0.88).toFixed(2);
+            const direction = Math.random() > 0.45 ? 'One-Way' : 'Two-Way';
+            const timestamp = getFormattedTimestamp();
+
+            const inc = Math.floor(Math.random() * 16) + 2;
+            nodeQueues[nodeId] = Math.min(400, (nodeQueues[nodeId] || 50) + inc);
+            
+            if (nodeQueues[nodeId] > 250) {
+                nodeStates[nodeId] = 2;
+            } else if (nodeQueues[nodeId] > 100) {
+                nodeStates[nodeId] = 1;
+            } else {
+                nodeStates[nodeId] = 0;
+            }
+
+            return {
+                nodeId,
+                plate,
+                confidence,
+                direction,
+                timestamp,
+                city: city.name,
+                contract: city.contract
+            };
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  6.  MARL ENGINE
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function getNeighbors(cityId, nodeIdx) {
+            const city = INDIA_CITIES_DB.find(c => c.id === cityId);
+            if (!city) return [];
+
+            const total = city.nodes;
+            const out = [];
+
+            for (let offset = -3; offset <= 3; offset++) {
+                if (offset === 0) continue;
+                const n = nodeIdx + offset;
+                if (n >= 1 && n <= total) {
+                    out.push(`${cityId}-${n}`);
+                }
+            }
+
+            while (out.length < 4) {
+                const r = Math.floor(Math.random() * total) + 1;
+                const cand = `${cityId}-${r}`;
+                if (!out.includes(cand) && cand !== `${cityId}-${nodeIdx}`) {
+                    out.push(cand);
+                }
+            }
+
+            return out;
+        }
+
+        function marlOptimize(cityId, nodeIdx, socialWeight) {
+            const nodeId = `${cityId}-${nodeIdx}`;
+            const queue = nodeQueues[nodeId] || 80;
+            const neighbors = getNeighbors(cityId, nodeIdx);
+            const nQueues = neighbors.map(n => nodeQueues[n] || 50);
+            const avgNeighbor = nQueues.reduce((a, b) => a + b, 0) / nQueues.length || 0;
+
+            let action = 1;
+            if (queue > 190) {
+                action = 2;
+            } else if (queue < 70) {
+                action = 0;
+            }
+
+            let penalty = 0;
+            if (action === 2 && avgNeighbor > 140) {
+                penalty = -((avgNeighbor / 100) * 0.75) * (1 + socialWeight * 0.8);
+            } else if (action === 0 && avgNeighbor < 40) {
+                penalty = -((40 - avgNeighbor) / 100) * 0.4;
+            }
+
+            if (socialWeight > 0.55 && action === 2 && queue < 180) {
+                action = 1;
+                penalty -= 0.2;
+            }
+
+            const labels = ['Shorten (-5s)', 'Hold (0s)', 'Extend (+5s)'];
+            const newQueue = Math.max(0, queue - (action * 8) + Math.floor(Math.random() * 4));
+
+            return {
+                action,
+                actionLabel: labels[action],
+                penalty: penalty,
+                neighborAvg: Math.round(avgNeighbor),
+                newQueue
+            };
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  7.  BLOCKCHAIN LOGGING
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function logToBlockchain(vehicle) {
+            blockCounter++;
+            const tx = {
+                hash: '0x' + Math.random().toString(16).substr(2, 10) + '...',
+                plate: vehicle.plate.slice(0, 8),
+                node: vehicle.nodeId.split('-')[1],
+                city: vehicle.city,
+                contract: vehicle.contract,
+                direction: vehicle.direction,
+                block: blockCounter,
+                timestamp: vehicle.timestamp
+            };
+            blockchainLogs.unshift(tx);
+            if (blockchainLogs.length > 18) {
+                blockchainLogs.pop();
+            }
+            return tx;
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  8.  RENDER FUNCTIONS
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function renderCityTabs() {
+            const container = document.getElementById('city-tabs');
+            container.innerHTML = '';
+            const states = getAllStates();
+
+            states.forEach(state => {
+                const cities = getCitiesByState(state);
+                const header = document.createElement('div');
+                header.className = 'text-[10px] text-slate-500 uppercase tracking-wider font-semibold mr-1';
+                header.textContent = state;
+                container.appendChild(header);
+
+                cities.forEach(city => {
+                    const btn = document.createElement('button');
+                    btn.className = `city-tab ${city.id === selectedCityId ? 'active' : ''}`;
+                    btn.textContent = city.name;
+                    btn.dataset.city = city.id;
+                    btn.title = `${city.nodes} nodes · Contract: ${city.contract}`;
+                    
+                    btn.onclick = () => {
+                        selectedCityId = city.id;
+                        initCityNodes(city.id);
+                        renderAll();
+                        detectionHistory = [];
+                        document.getElementById('detection-log').innerHTML = '';
+                        populateFocusedNodes(city.id);
+                        const sw = parseFloat(document.getElementById('social-weight-slider').value);
+                        updateMarlDisplay(city.id, sw);
+                    };
+                    container.appendChild(btn);
+                });
+            });
+        }
+
+        function populateFocusedNodes(cityId) {
+            const city = INDIA_CITIES_DB.find(c => c.id === cityId);
+            if (!city) return;
+
+            const sel = document.getElementById('focused-node');
+            sel.innerHTML = '';
+            const indices = [];
+            const total = city.nodes;
+
+            for (let i = 1; i <= Math.min(5, total); i++) {
+                indices.push(i);
+            }
+            for (let i = Math.max(1, total - 4); i <= total; i++) {
+                if (!indices.includes(i)) indices.push(i);
+            }
+
+            const step = Math.max(1, Math.floor(total / 8));
+            for (let i = 1; i <= total; i += step) {
+                if (!indices.includes(i)) indices.push(i);
+            }
+
+            indices.sort((a, b) => a - b);
+            const displayIndices = indices.length > 15 ? indices.filter((_, idx) => idx % 2 === 0) : indices;
+
+            displayIndices.forEach(idx => {
+                const opt = document.createElement('option');
+                opt.value = `${cityId}-${idx}`;
+                opt.textContent = `Node ${idx}`;
+                sel.appendChild(opt);
+            });
+
+            sel.value = `${cityId}-${displayIndices[0] || 1}`;
+        }
+
+        function renderNodeGrid(cityId) {
+            const city = INDIA_CITIES_DB.find(c => c.id === cityId);
+            if (!city) return;
+
+            const container = document.getElementById('node-grid-container');
+            container.innerHTML = '';
+            const total = city.nodes;
+            const focused = document.getElementById('focused-node').value;
+
+            for (let i = 1; i <= total; i++) {
+                const id = `${cityId}-${i}`;
+                const state = nodeStates[id] ?? 0;
+                const cls = state === 2 ? 'node-congested' :
+                    state === 1 ? 'node-active' : 'node-idle';
+                const extra = id === focused ? ' node-focused' : '';
+                
+                const div = document.createElement('div');
+                div.className = `node-item ${cls}${extra}`;
+                div.textContent = i;
+                div.title = `Queue: ${nodeQueues[id] || 0}`;
+                container.appendChild(div);
+            }
+
+            document.getElementById('city-name-display').textContent = `${city.name} (${city.state})`;
+            document.getElementById('node-count-display').textContent = total;
+        }
+
+        function renderStats(cityId) {
+            const city = INDIA_CITIES_DB.find(c => c.id === cityId);
+            if (!city) return;
+
+            const total = city.nodes;
+            let active = 0, congested = 0;
+
+            for (let i = 1; i <= total; i++) {
+                const id = `${cityId}-${i}`;
+                const s = nodeStates[id] ?? 0;
+                if (s === 1) active++;
+                else if (s === 2) congested++;
+            }
+
+            const container = document.getElementById('stats-container');
+            container.innerHTML = `
+                <div class="glass p-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs uppercase tracking-wider" style="color: var(--text-secondary);">${city.name}</p>
+                            <p class="text-2xl font-bold">${total} <span class="text-sm font-normal" style="color: var(--text-secondary);">Nodes</span></p>
+                        </div>
+                        <span class="text-2xl" style="color: var(--text-accent);"><i class="fas fa-city"></i></span>
+                    </div>
+                    <div class="mt-2 flex gap-2 text-xs flex-wrap">
+                        <span class="px-2 py-0.5 rounded" style="background: rgba(14,165,233,0.2); color: #38bdf8;">Active: ${active}</span>
+                        <span class="px-2 py-0.5 rounded" style="background: rgba(239,68,68,0.2); color: #f87171;">Congested: ${congested}</span>
+                        <span class="px-2 py-0.5 rounded" style="background: rgba(74,222,128,0.15); color: #4ade80;">Contract: ${city.contract.slice(0, 10)}...</span>
+                    </div>
+                </div>
+                <div class="glass p-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs uppercase tracking-wider" style="color: var(--text-secondary);">Global MARL</p>
+                            <p class="text-2xl font-bold" id="global-flow">92% <span class="text-sm font-normal" style="color: var(--text-secondary);">Efficiency</span></p>
+                        </div>
+                        <span class="text-2xl" style="color: #4ade80;"><i class="fas fa-robot"></i></span>
+                    </div>
+                    <div class="mt-2 flex gap-2 text-xs">
+                        <span class="px-2 py-0.5 rounded" style="background: rgba(250,204,21,0.15); color: #facc15;">Social Weight: <span id="social-weight-display">0.40</span></span>
+                    </div>
+                </div>
+                <div class="glass p-4 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs uppercase" style="color: var(--text-secondary);">Total Detections</p>
+                        <p class="text-2xl font-bold" id="total-detections">${detectionHistory.length}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase" style="color: var(--text-secondary);">Blockchain Height</p>
+                        <p class="text-2xl font-bold" id="block-number-display">${blockCounter}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderDetection(vehicle) {
+            const log = document.getElementById('detection-log');
+            const row = document.createElement('div');
+            row.className =
+                'flex justify-between items-center text-[11px] py-0.5 border-b fade-in' +
+                (detectionHistory.length % 2 === 0 ? ' border-slate-700/30' : ' border-slate-700/10');
+            const dirColor = vehicle.direction === 'Two-Way' ? 'text-yellow-400' : 'text-green-400';
+            
+            row.innerHTML = `
+                <span class="w-1/5 font-mono truncate" style="color: var(--text-accent);" title="${vehicle.plate}">${vehicle.plate}</span>
+                <span class="w-1/8 text-center" style="color: var(--text-primary);">${vehicle.nodeId.split('-')[1]}</span>
+                <span class="w-1/6 text-center ${dirColor}">${vehicle.direction}</span>
+                <span class="w-1/8 text-center" style="color: var(--text-secondary);">${vehicle.confidence}%</span>
+                <span class="w-1/5 text-center text-[9px]" style="color: var(--text-secondary);">${vehicle.timestamp}</span>
+                <span class="w-1/12 text-center" style="color: #4ade80;"><i class="fas fa-check-circle"></i></span>
+            `;
+            log.prepend(row);
+            
+            while (log.children.length > 14) {
+                log.removeChild(log.lastChild);
+            }
+        }
+
+        function renderBlockchain(vehicle) {
+            const tx = logToBlockchain(vehicle);
+            const log = document.getElementById('blockchain-log');
+            log.innerHTML = '';
+
+            blockchainLogs.slice(0, 12).forEach(t => {
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center p-0.5 border-b' +
+                    (blockchainLogs.indexOf(t) % 2 === 0 ? ' border-slate-700/30' : ' border-slate-700/10');
+                
+                div.innerHTML = `
+                    <span class="font-mono text-[10px]" style="color: var(--text-accent);">${t.hash}</span>
+                    <span style="color: var(--text-primary);" class="truncate max-w-[40px]">${t.plate}</span>
+                    <span style="color: var(--text-secondary);">#${t.node}</span>
+                    <span style="color: #fbbf24;" class="text-[9px]">${t.block}</span>
+                    <span style="color: var(--text-secondary);" class="text-[8px] hidden sm:inline">${t.timestamp}</span>
+                `;
+                log.appendChild(div);
+            });
+
+            document.getElementById('block-number').textContent = blockCounter;
+            document.getElementById('block-number-display').textContent = blockCounter;
+        }
+
+        function updateMarlDisplay(cityId, socialWeight) {
+            const sel = document.getElementById('focused-node');
+            const nodeId = sel.value;
+            if (!nodeId) return;
+
+            const parts = nodeId.split('-');
+            const nodeIdx = parseInt(parts[1]);
+            const result = marlOptimize(cityId, nodeIdx, socialWeight);
+
+            document.getElementById('focused-queue').textContent = nodeQueues[nodeId] ?? 0;
+            document.getElementById('focused-action').textContent = result.actionLabel;
+            
+            const pct = (result.penalty * 100).toFixed(1);
+            const pctEl = document.getElementById('focused-penalty');
+            pctEl.textContent = `${pct}%`;
+            pctEl.style.color = parseFloat(pct) < -5 ? '#f87171' : '#fbbf24';
+
+            const expl = document.getElementById('marl-explanation');
+            expl.innerHTML = `
+                Social Weight: <b style="color: var(--text-accent);">${socialWeight.toFixed(2)}</b> &middot;
+                Neighbor Avg: <b style="color: #fbbf24;">${result.neighborAvg}</b> &middot;
+                Penalty: <b style="color: ${parseFloat(pct) < -5 ? '#f87171' : '#4ade80'}">${pct}%</b> &middot;
+                New Queue: <b style="color: var(--text-primary);">${result.newQueue}</b>
+                ${parseFloat(pct) < -5 ? ' ⚠️ Greedy action prevented!' : ' ✅ Cooperative flow.'}
+            `;
+
+            const base = 80 + (socialWeight * 18);
+            const eff = Math.min(99, Math.round(base + (Math.random() - 0.5) * 4));
+            document.getElementById('global-flow').innerHTML =
+                `${eff}% <span class="text-sm font-normal" style="color: var(--text-secondary);">Efficiency</span>`;
+            document.getElementById('social-weight-display').textContent = socialWeight.toFixed(2);
+        }
+
+        function renderAll() {
+            renderCityTabs();
+            renderStats(selectedCityId);
+            renderNodeGrid(selectedCityId);
+            populateFocusedNodes(selectedCityId);
+            const sw = parseFloat(document.getElementById('social-weight-slider').value);
+            updateMarlDisplay(selectedCityId, sw);
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  9.  MAIN SIMULATION LOOP
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function tick() {
+            const vehicle = generateVehicle(selectedCityId);
+            if (!vehicle) return;
+
+            detectionHistory.unshift(vehicle);
+            if (detectionHistory.length > 30) {
+                detectionHistory.pop();
+            }
+
+            renderDetection(vehicle);
+            renderBlockchain(vehicle);
+            renderNodeGrid(selectedCityId);
+            renderStats(selectedCityId);
+
+            const sw = parseFloat(document.getElementById('social-weight-slider').value);
+            updateMarlDisplay(selectedCityId, sw);
+
+            document.getElementById('fps-counter').textContent = Math.floor(10 + Math.random() * 6);
+            document.getElementById('total-detections').textContent = detectionHistory.length;
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  10. EVENT BINDINGS
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        document.getElementById('social-weight-slider').addEventListener('input', function() {
+            const val = parseFloat(this.value);
+            document.getElementById('social-weight-value').textContent = val.toFixed(2);
+            document.getElementById('social-weight-display').textContent = val.toFixed(2);
+            updateMarlDisplay(selectedCityId, val);
+        });
+
+        document.getElementById('focused-node').addEventListener('change', function() {
+            const sw = parseFloat(document.getElementById('social-weight-slider').value);
+            updateMarlDisplay(selectedCityId, sw);
+            renderNodeGrid(selectedCityId);
+        });
+
+        // Theme buttons handler
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const theme = this.dataset.theme;
+                document.documentElement.setAttribute('data-theme', theme);
+                document.querySelectorAll('.theme-btn').forEach(b => {
+                    b.style.borderColor = 'transparent';
+                });
+                this.style.borderColor = 'var(--text-accent)';
+                try {
+                    localStorage.setItem('gatimarg-theme', theme);
+                } catch (e) {}
+            });
+        });
+
+        // Load saved theme preference
+        try {
+            const savedTheme = localStorage.getItem('gatimarg-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            document.querySelectorAll('.theme-btn').forEach(b => {
+                b.style.borderColor = 'transparent';
+                if (b.dataset.theme === savedTheme) {
+                    b.style.borderColor = 'var(--text-accent)';
+                }
+            });
+        } catch (e) {}
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  11. INITIALIZATION – START SIMULATION
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        initCityNodes('mumbai');
+        renderAll();
+
+        setTimeout(tick, 200);
+        setTimeout(tick, 600);
+        setTimeout(tick, 1100);
+        setInterval(tick, 1800);
+
+        console.log('🛡️ GATIMARG KAVACH Simulation STARTED');
+    </script>
+</body>
+</html>
